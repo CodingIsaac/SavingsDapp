@@ -21,5 +21,12 @@ There is mapping in the smart contract to further keep record of the deposit and
 
 How to use this smart contract.
 
+# git clone https://github.com/CodingIsaac/SavingsDapp.git
+
+# npm init --y
+
+# npm install dotenv
+
+or you can just fork the repository and follow the step above to use.
 
 
