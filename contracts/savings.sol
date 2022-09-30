@@ -11,6 +11,10 @@ contract Debby is ERC20, ReentrancyGuard {
 
     /*
 
+
+
+
+
     What exactly are we trying to achieve: basically 2:
     1. Users should be able to save their ETH and DEB token into this smart contract.
     2. Users should be able to withdraw their saved tokens from this smart contract at will.
@@ -37,23 +41,18 @@ contract Debby is ERC20, ReentrancyGuard {
         _;
     }
 
-    
-    
+    modifier isValidNum(uint num){
+        require(num > 0, "value can't be 0");
+        _;
+    }
 
     /// @dev deposits ETH to the contract
-    function depositEth() external payable {
-       
-        require(msg.value > 0, "can't send zero eth");
-        
+    function depositEth() external payable isValidNum(msg.value){
         ethSavings[msg.sender] += msg.value;
     }
 
-   
-
     /// @dev user gets back their ETH saved as collateral
-    function getBackEth() external {
-       
-        require(ethSavings[msg.sender] > 0, "you don't have saved Eth to withdraw");
+    function getBackEth() external isValidNum(ethSavings[msg.sender]){
         require(address(this).balance >= ethSavings[msg.sender], "no funds to payback, check later");
 
         uint ethSaved = ethSavings[msg.sender];
@@ -69,30 +68,23 @@ contract Debby is ERC20, ReentrancyGuard {
         bal = address(this).balance;
     }
 
-    
-    function getUserSaving(address _address) external view returns (uint addressBal) {
-        addressBal = ethSavings[_address];
-    }
-
-    
-    function depositErc20(uint _amount) external {
-        // require(ethLendings[msg.sender] == 0, "you have an unresolved borrowed transaction");
-        require(_amount > 0, "can't deposit zero token");
-
-        erc20Savings[msg.sender] += _amount;
-    }
-
-   
-
     /// @dev get back deposited ERC20 token
-    function getBackErc20() external {
-        
-        require(erc20Savings[msg.sender] > 0, "you don't have any save erc20 token");
+    function getBackErc20() external isValidNum(erc20Savings[msg.sender]){
         require(balanceOf(address(this)) >= erc20Savings[msg.sender], "insufficient funds, check back later");
 
         uint savedErc20 = erc20Savings[msg.sender];
 
         erc20Savings[msg.sender] = 0;
         _transfer(address(this), msg.sender, savedErc20);
+    }
+
+    function getUserSaving(address _address) external view returns (uint addressBal) {
+        addressBal = ethSavings[_address];
+    }
+
+    
+    function depositErc20(uint _amount) external isValidNum(_amount){
+        // require(ethLendings[msg.sender] == 0, "you have an unresolved borrowed transaction");
+        erc20Savings[msg.sender] += _amount;
     }
 }
