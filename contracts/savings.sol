@@ -36,8 +36,6 @@ contract Debby is ERC20, ReentrancyGuard {
         require(msg.sender == owner, "Only Owner can call this function");
         _;
     }
-
-    
     
 
     /// @dev deposits ETH to the contract
@@ -59,9 +57,11 @@ contract Debby is ERC20, ReentrancyGuard {
         uint ethSaved = ethSavings[msg.sender];
         ethSavings[msg.sender] = 0;
 
-        payable(msg.sender).transfer(ethSaved);
+        bool sent = payable(msg.sender).send(ethSaved);
 
-         _transfer(address(this), msg.sender, ethSaved);
+        require(sent, "Failed to send Ether!");
+
+        _transfer(address(this), msg.sender, ethSaved);
     }
 
    
@@ -76,7 +76,6 @@ contract Debby is ERC20, ReentrancyGuard {
 
     
     function depositErc20(uint _amount) external {
-        // require(ethLendings[msg.sender] == 0, "you have an unresolved borrowed transaction");
         require(_amount > 0, "can't deposit zero token");
 
         erc20Savings[msg.sender] += _amount;
