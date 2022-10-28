@@ -89,11 +89,12 @@ contract Debby  {
         sData.noOfDays = block.timestamp + (specifiedDays * 1 days);
         sData.specifiedYear = block.timestamp + 365 days;
     }
-
+// Function to calcualte apy
     function toCalculateAPY(uint _days, uint _amount, uint _specifiedyear) private pure returns (uint totalyield) {
         uint quoficientOfDays = _days/_specifiedyear;
         totalyield = quoficientOfDays * _amount;
     }
+    // Function to withdraw staked ETH
 
     function withdrawStake() external {
         stakeData memory userStake = stakes[msg.sender];
