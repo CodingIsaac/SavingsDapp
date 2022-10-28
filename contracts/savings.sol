@@ -1,36 +1,43 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /// @author Isaac Ijuo
-contract Debby is ERC20, ReentrancyGuard {
+contract Debby  {
     address owner;
-    uint public constant maxTotalSupply = 30000000 * 10 ** 18;
-
+    
     /*
 
     What exactly are we trying to achieve: basically 2:
-    1. Users should be able to save their ETH and DEB token into this smart contract.
+    1. Users should be able to save their ETH and Dstake their tokens.
     2. Users should be able to withdraw their saved tokens from this smart contract at will.
     3. We should guard against reentrancy.
     4. Ensure that users who don't deposit should not withdraw.
 
     */
 
-    // runs immediately this contract is deployed: sets owner to msg.sender and mints token to contract address
-    constructor() ERC20("Debby", "DAB") {
-        owner = msg.sender;
-        _mint(address(this), maxTotalSupply);
+    
+    // mapping to track ETH savings 
+    mapping(address => uint) ethSavings;
+
+    struct stakeData {
+        uint noOfDays;
+        uint amount;
+        uint specifiedYear;
+
+
     }
 
-    // mapping to track ETH savings and erc20 lendings
-    mapping(address => uint) ethSavings;
+    mapping(address => stakeData) stakes;
+
+    constructor() {
+        owner = msg.sender;
+    }
+    receive() external payable {}
+    fallback() external payable{}
     
 
-    // mapping to track ERC20 savings and ETH lending
-    mapping(address => uint) erc20Savings;
+    
 
     modifier onlyOwner() {
         require(msg.sender == owner, "Only Owner can call this function");
@@ -39,7 +46,6 @@ contract Debby is ERC20, ReentrancyGuard {
 
     
     
-
     /// @dev deposits ETH to the contract
     function depositEth() external payable {
        
@@ -61,7 +67,7 @@ contract Debby is ERC20, ReentrancyGuard {
 
         payable(msg.sender).transfer(ethSaved);
 
-         _transfer(address(this), msg.sender, ethSaved);
+        
     }
 
    
@@ -74,25 +80,36 @@ contract Debby is ERC20, ReentrancyGuard {
         addressBal = ethSavings[_address];
     }
 
+    // Function to stake ETH
+    function stake(uint specifiedDays) external payable {
+        require(msg.value > 0, "You can't stake Zero ETH");
+        require(specifiedDays > 0, "Staking period must be greater than Zero days");
+        stakeData storage sData = stakes[msg.sender];
+        sData.amount += msg.value;
+        sData.noOfDays = block.timestamp + (specifiedDays * 1 days);
+        sData.specifiedYear = block.timestamp + 365 days;
+    }
+
+    function toCalculateAPY(uint _days, uint _amount, uint _specifiedyear) private pure returns (uint totalyield) {
+        uint quoficientOfDays = _days/_specifiedyear;
+        totalyield = quoficientOfDays * _amount;
+    }
+
+    function withdrawStake() external {
+        stakeData memory userStake = stakes[msg.sender];
+        require(block.timestamp > userStake.noOfDays, "Staking period not reached");
+        require(userStake.amount > 0, "Insufficient Balance");
+        uint calculateAPY = toCalculateAPY(userStake.noOfDays, userStake.amount, userStake.specifiedYear);
+
+        uint ethTransferrable = userStake.amount + calculateAPY;
+        stakes[msg.sender].amount = 0;
+        stakes[msg.sender].noOfDays = 0;
+        payable(msg.sender).transfer(ethTransferrable);
+
+    }
+
+
+
     
-    function depositErc20(uint _amount) external {
-        // require(ethLendings[msg.sender] == 0, "you have an unresolved borrowed transaction");
-        require(_amount > 0, "can't deposit zero token");
-
-        erc20Savings[msg.sender] += _amount;
-    }
-
    
-
-    /// @dev get back deposited ERC20 token
-    function getBackErc20() external {
-        
-        require(erc20Savings[msg.sender] > 0, "you don't have any save erc20 token");
-        require(balanceOf(address(this)) >= erc20Savings[msg.sender], "insufficient funds, check back later");
-
-        uint savedErc20 = erc20Savings[msg.sender];
-
-        erc20Savings[msg.sender] = 0;
-        _transfer(address(this), msg.sender, savedErc20);
-    }
 }
